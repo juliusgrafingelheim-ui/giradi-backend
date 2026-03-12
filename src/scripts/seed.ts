@@ -63,7 +63,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
   const salesChannelModuleService = container.resolve(Modules.SALES_CHANNEL);
   const storeModuleService = container.resolve(Modules.STORE);
 
-  const countries = ["gb", "de", "dk", "se", "fr", "es", "it"];
+  const countries = ["de", "at", "ch"];
 
   logger.info("Seeding store data...");
   const [store] = await storeModuleService.listStores();
@@ -72,7 +72,6 @@ export default async function seedDemoData({ container }: ExecArgs) {
   });
 
   if (!defaultSalesChannel.length) {
-    // create the default sales channel
     const { result: salesChannelResult } = await createSalesChannelsWorkflow(
       container
     ).run({
@@ -95,9 +94,6 @@ export default async function seedDemoData({ container }: ExecArgs) {
           currency_code: "eur",
           is_default: true,
         },
-        {
-          currency_code: "usd",
-        },
       ],
     },
   });
@@ -110,12 +106,13 @@ export default async function seedDemoData({ container }: ExecArgs) {
       },
     },
   });
+
   logger.info("Seeding region data...");
   const { result: regionResult } = await createRegionsWorkflow(container).run({
     input: {
       regions: [
         {
-          name: "Europe",
+          name: "DACH",
           currency_code: "eur",
           countries,
           payment_providers: ["pp_system_default"],
@@ -142,11 +139,13 @@ export default async function seedDemoData({ container }: ExecArgs) {
     input: {
       locations: [
         {
-          name: "European Warehouse",
+          name: "Die Werkstatt",
           address: {
-            city: "Copenhagen",
-            country_code: "DK",
-            address_1: "",
+            city: "Innsbruck",
+            country_code: "AT",
+            address_1: "Baeckerbuehel\u0067asse 14",
+            postal_code: "6020",
+            province: "Tirol",
           },
         },
       ],
@@ -194,40 +193,15 @@ export default async function seedDemoData({ container }: ExecArgs) {
   }
 
   const fulfillmentSet = await fulfillmentModuleService.createFulfillmentSets({
-    name: "European Warehouse delivery",
+    name: "DACH Versand",
     type: "shipping",
     service_zones: [
       {
-        name: "Europe",
+        name: "DACH",
         geo_zones: [
-          {
-            country_code: "gb",
-            type: "country",
-          },
-          {
-            country_code: "de",
-            type: "country",
-          },
-          {
-            country_code: "dk",
-            type: "country",
-          },
-          {
-            country_code: "se",
-            type: "country",
-          },
-          {
-            country_code: "fr",
-            type: "country",
-          },
-          {
-            country_code: "es",
-            type: "country",
-          },
-          {
-            country_code: "it",
-            type: "country",
-          },
+          { country_code: "de", type: "country" },
+          { country_code: "at", type: "country" },
+          { country_code: "ch", type: "country" },
         ],
       },
     ],
@@ -245,79 +219,43 @@ export default async function seedDemoData({ container }: ExecArgs) {
   await createShippingOptionsWorkflow(container).run({
     input: [
       {
-        name: "Standard Shipping",
+        name: "Standardversand",
         price_type: "flat",
         provider_id: "manual_manual",
         service_zone_id: fulfillmentSet.service_zones[0].id,
         shipping_profile_id: shippingProfile.id,
         type: {
           label: "Standard",
-          description: "Ship in 2-3 days.",
+          description: "Lieferung in 2-5 Werktagen.",
           code: "standard",
         },
         prices: [
-          {
-            currency_code: "usd",
-            amount: 10,
-          },
-          {
-            currency_code: "eur",
-            amount: 10,
-          },
-          {
-            region_id: region.id,
-            amount: 10,
-          },
+          { currency_code: "eur", amount: 5.90 },
+          { region_id: region.id, amount: 5.90 },
         ],
         rules: [
-          {
-            attribute: "enabled_in_store",
-            value: "true",
-            operator: "eq",
-          },
-          {
-            attribute: "is_return",
-            value: "false",
-            operator: "eq",
-          },
+          { attribute: "enabled_in_store", value: "true", operator: "eq" },
+          { attribute: "is_return", value: "false", operator: "eq" },
         ],
       },
       {
-        name: "Express Shipping",
+        name: "Abholung in Innsbruck (Die Werkstatt)",
         price_type: "flat",
         provider_id: "manual_manual",
         service_zone_id: fulfillmentSet.service_zones[0].id,
         shipping_profile_id: shippingProfile.id,
         type: {
-          label: "Express",
-          description: "Ship in 24 hours.",
-          code: "express",
+          label: "Abholung",
+          description: "Selbstabholung bei Die Werkstatt, Baeckerbuehel\u0067asse 14, 6020 Innsbruck - kostenlos.",
+          code: "pickup",
         },
         prices: [
-          {
-            currency_code: "usd",
-            amount: 10,
-          },
-          {
-            currency_code: "eur",
-            amount: 10,
-          },
-          {
-            region_id: region.id,
-            amount: 10,
-          },
+          { currency_code: "eur", amount: 0 },
+          { region_id: region.id, amount: 0 },
         ],
         rules: [
-          {
-            attribute: "enabled_in_store",
-            value: "true",
-            operator: "eq",
-          },
-          {
-            attribute: "is_return",
-            value: "false",
-            operator: "eq",
-          },
+          { attribute: "enabled_in_store", value: "true", operator: "eq" },
+          { attribute: "is_return", value: "false", operator: "eq" },
         ],
       },
     ],
@@ -351,7 +289,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
       input: {
         api_keys: [
           {
-            title: "Webshop",
+            title: "Giradi Webshop",
             type: "publishable",
             created_by: "",
           },
@@ -370,533 +308,128 @@ export default async function seedDemoData({ container }: ExecArgs) {
   });
   logger.info("Finished seeding publishable API key data.");
 
-  logger.info("Seeding product data...");
-
+  logger.info("Seeding product categories...");
   const { result: categoryResult } = await createProductCategoriesWorkflow(
     container
   ).run({
     input: {
       product_categories: [
-        {
-          name: "Shirts",
-          is_active: true,
-        },
-        {
-          name: "Sweatshirts",
-          is_active: true,
-        },
-        {
-          name: "Pants",
-          is_active: true,
-        },
-        {
-          name: "Merch",
-          is_active: true,
-        },
+        { name: "BIO Olivenoel", is_active: true },
+        { name: "Olivenoel Extra Nativ", is_active: true },
+        { name: "Olivenoel mit Aroma", is_active: true },
+        { name: "Balsamessig", is_active: true },
       ],
     },
+  });
+
+  const catBio = categoryResult.find((c) => c.name === "BIO Olivenoel")!;
+  const catExtraNativ = categoryResult.find((c) => c.name === "Olivenoel Extra Nativ")!;
+  const catAroma = categoryResult.find((c) => c.name === "Olivenoel mit Aroma")!;
+  const catBalsam = categoryResult.find((c) => c.name === "Balsamessig")!;
+
+  logger.info("Seeding product data...");
+
+  const makeProduct = (
+    title: string,
+    handle: string,
+    description: string,
+    categoryId: string,
+    priceEur: number,
+    sku: string,
+    weight: number = 500,
+    sizeLabel: string = "250ml"
+  ) => ({
+    title,
+    handle,
+    description,
+    category_ids: [categoryId],
+    weight,
+    status: ProductStatus.PUBLISHED,
+    shipping_profile_id: shippingProfile!.id,
+    options: [{ title: "Groesse", values: [sizeLabel] }],
+    variants: [
+      {
+        title: sizeLabel,
+        sku,
+        options: { "Groesse": sizeLabel },
+        prices: [{ amount: priceEur, currency_code: "eur" }],
+      },
+    ],
+    sales_channels: [{ id: defaultSalesChannel[0].id }],
   });
 
   await createProductsWorkflow(container).run({
     input: {
       products: [
-        {
-          title: "Medusa T-Shirt",
-          category_ids: [
-            categoryResult.find((cat) => cat.name === "Shirts")!.id,
-          ],
-          description:
-            "Reimagine the feeling of a classic T-shirt. With our cotton T-shirts, everyday essentials no longer have to be ordinary.",
-          handle: "t-shirt",
-          weight: 400,
-          status: ProductStatus.PUBLISHED,
-          shipping_profile_id: shippingProfile.id,
-          images: [
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/tee-black-front.png",
-            },
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/tee-black-back.png",
-            },
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/tee-white-front.png",
-            },
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/tee-white-back.png",
-            },
-          ],
-          options: [
-            {
-              title: "Size",
-              values: ["S", "M", "L", "XL"],
-            },
-            {
-              title: "Color",
-              values: ["Black", "White"],
-            },
-          ],
-          variants: [
-            {
-              title: "S / Black",
-              sku: "SHIRT-S-BLACK",
-              options: {
-                Size: "S",
-                Color: "Black",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "S / White",
-              sku: "SHIRT-S-WHITE",
-              options: {
-                Size: "S",
-                Color: "White",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "M / Black",
-              sku: "SHIRT-M-BLACK",
-              options: {
-                Size: "M",
-                Color: "Black",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "M / White",
-              sku: "SHIRT-M-WHITE",
-              options: {
-                Size: "M",
-                Color: "White",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "L / Black",
-              sku: "SHIRT-L-BLACK",
-              options: {
-                Size: "L",
-                Color: "Black",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "L / White",
-              sku: "SHIRT-L-WHITE",
-              options: {
-                Size: "L",
-                Color: "White",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "XL / Black",
-              sku: "SHIRT-XL-BLACK",
-              options: {
-                Size: "XL",
-                Color: "Black",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "XL / White",
-              sku: "SHIRT-XL-WHITE",
-              options: {
-                Size: "XL",
-                Color: "White",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-          ],
-          sales_channels: [
-            {
-              id: defaultSalesChannel[0].id,
-            },
-          ],
-        },
-        {
-          title: "Medusa Sweatshirt",
-          category_ids: [
-            categoryResult.find((cat) => cat.name === "Sweatshirts")!.id,
-          ],
-          description:
-            "Reimagine the feeling of a classic sweatshirt. With our cotton sweatshirt, everyday essentials no longer have to be ordinary.",
-          handle: "sweatshirt",
-          weight: 400,
-          status: ProductStatus.PUBLISHED,
-          shipping_profile_id: shippingProfile.id,
-          images: [
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatshirt-vintage-front.png",
-            },
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatshirt-vintage-back.png",
-            },
-          ],
-          options: [
-            {
-              title: "Size",
-              values: ["S", "M", "L", "XL"],
-            },
-          ],
-          variants: [
-            {
-              title: "S",
-              sku: "SWEATSHIRT-S",
-              options: {
-                Size: "S",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "M",
-              sku: "SWEATSHIRT-M",
-              options: {
-                Size: "M",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "L",
-              sku: "SWEATSHIRT-L",
-              options: {
-                Size: "L",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "XL",
-              sku: "SWEATSHIRT-XL",
-              options: {
-                Size: "XL",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-          ],
-          sales_channels: [
-            {
-              id: defaultSalesChannel[0].id,
-            },
-          ],
-        },
-        {
-          title: "Medusa Sweatpants",
-          category_ids: [
-            categoryResult.find((cat) => cat.name === "Pants")!.id,
-          ],
-          description:
-            "Reimagine the feeling of classic sweatpants. With our cotton sweatpants, everyday essentials no longer have to be ordinary.",
-          handle: "sweatpants",
-          weight: 400,
-          status: ProductStatus.PUBLISHED,
-          shipping_profile_id: shippingProfile.id,
-          images: [
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatpants-gray-front.png",
-            },
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatpants-gray-back.png",
-            },
-          ],
-          options: [
-            {
-              title: "Size",
-              values: ["S", "M", "L", "XL"],
-            },
-          ],
-          variants: [
-            {
-              title: "S",
-              sku: "SWEATPANTS-S",
-              options: {
-                Size: "S",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "M",
-              sku: "SWEATPANTS-M",
-              options: {
-                Size: "M",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "L",
-              sku: "SWEATPANTS-L",
-              options: {
-                Size: "L",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "XL",
-              sku: "SWEATPANTS-XL",
-              options: {
-                Size: "XL",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-          ],
-          sales_channels: [
-            {
-              id: defaultSalesChannel[0].id,
-            },
-          ],
-        },
-        {
-          title: "Medusa Shorts",
-          category_ids: [
-            categoryResult.find((cat) => cat.name === "Merch")!.id,
-          ],
-          description:
-            "Reimagine the feeling of classic shorts. With our cotton shorts, everyday essentials no longer have to be ordinary.",
-          handle: "shorts",
-          weight: 400,
-          status: ProductStatus.PUBLISHED,
-          shipping_profile_id: shippingProfile.id,
-          images: [
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/shorts-vintage-front.png",
-            },
-            {
-              url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/shorts-vintage-back.png",
-            },
-          ],
-          options: [
-            {
-              title: "Size",
-              values: ["S", "M", "L", "XL"],
-            },
-          ],
-          variants: [
-            {
-              title: "S",
-              sku: "SHORTS-S",
-              options: {
-                Size: "S",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "M",
-              sku: "SHORTS-M",
-              options: {
-                Size: "M",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "L",
-              sku: "SHORTS-L",
-              options: {
-                Size: "L",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "XL",
-              sku: "SHORTS-XL",
-              options: {
-                Size: "XL",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-          ],
-          sales_channels: [
-            {
-              id: defaultSalesChannel[0].id,
-            },
-          ],
-        },
+        // ===== BIO Olivenoel =====
+        makeProduct(
+          "BIO-Olivenoel Extra Nativ Frisch Gepresst 1L",
+          "bio-olivenoel-1l",
+          "Naturtrueb / 1 Liter. Frisch gepresst Anfang November 2025. Begrenzte Stueckanzahl. Zertifiziertes BIO-Olivenoel aus 100% Koroneiki-Oliven.",
+          catBio.id, 22.50, "BIO-OEL-1L", 1100, "1 Liter"
+        ),
+        makeProduct(
+          "BIO-Olivenoel Extra Nativ Frisch Gepresst 500ml",
+          "bio-olivenoel-500ml",
+          "Naturtrueb / 500 ml. Frisch gepresst Anfang November 2025. Begrenzte Stueckanzahl. Zertifiziertes BIO-Olivenoel aus 100% Koroneiki-Oliven.",
+          catBio.id, 14.50, "BIO-OEL-500ML", 600, "500 ml"
+        ),
+
+        // ===== Olivenoel Extra Nativ =====
+        makeProduct(
+          "Olivenoel Extra Nativ 5L Kanister",
+          "olivenoel-extra-nativ-5l",
+          "Erste Gueteklasse - direkt aus Oliven ausschliesslich mit mechanischen Verfahren gewonnen. 100% Koroneiki-Oliven. Intensives Fruchtaroma, tiefgruene Farbe, kraeftiger Geschmack.",
+          catExtraNativ.id, 69.90, "OEL-EN-5L", 5200, "5 Liter"
+        ),
+        makeProduct(
+          "Olivenoel Extra Nativ 1L Flasche",
+          "olivenoel-extra-nativ-1l",
+          "Erste Gueteklasse - direkt aus Oliven ausschliesslich mit mechanischen Verfahren gewonnen. 100% Koroneiki-Oliven aus Griechenland.",
+          catExtraNativ.id, 17.90, "OEL-EN-1L", 1100, "1 Liter"
+        ),
+        makeProduct(
+          "Olivenoel Extra Nativ 0,75L Flasche",
+          "olivenoel-extra-nativ-075l",
+          "Erste Gueteklasse - direkt aus Oliven ausschliesslich mit mechanischen Verfahren gewonnen. 100% Koroneiki-Oliven aus Griechenland.",
+          catExtraNativ.id, 14.90, "OEL-EN-075L", 850, "0,75 Liter"
+        ),
+
+        // ===== Olivenoel mit Aroma (je 250ml) =====
+        makeProduct("Olivenoel Basilikum", "olivenoel-basilikum", "Extra Natives Olivenoel mit Basilikum-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-BASIL", 350, "250 ml"),
+        makeProduct("Olivenoel Blutorange", "olivenoel-blutorange", "Extra Natives Olivenoel mit Blutorange-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-BLUTO", 350, "250 ml"),
+        makeProduct("Olivenoel Chili", "olivenoel-chili", "Extra Natives Olivenoel mit Chili-Aroma. 250ml Flasche.", catAroma.id, 8.70, "OEL-CHILI", 350, "250 ml"),
+        makeProduct("Olivenoel Knoblauch", "olivenoel-knoblauch", "Extra Natives Olivenoel mit Knoblauch-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-KNOBL", 350, "250 ml"),
+        makeProduct("Olivenoel Kraeuter der Toskana", "olivenoel-kraeuter-toskana", "Extra Natives Olivenoel mit Kraeutern der Toskana. 250ml Flasche.", catAroma.id, 8.70, "OEL-TOSK", 350, "250 ml"),
+        makeProduct("Olivenoel Limette", "olivenoel-limette", "Extra Natives Olivenoel mit Limette-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-LIMET", 350, "250 ml"),
+        makeProduct("Olivenoel Orange", "olivenoel-orange", "Extra Natives Olivenoel mit Orange-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-ORANG", 350, "250 ml"),
+        makeProduct("Olivenoel Oregano", "olivenoel-oregano", "Extra Natives Olivenoel mit Oregano-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-OREG", 350, "250 ml"),
+        makeProduct("Olivenoel Pesto", "olivenoel-pesto", "Extra Natives Olivenoel mit Pesto-Aroma. 250ml Flasche.", catAroma.id, 8.70, "OEL-PESTO", 350, "250 ml"),
+        makeProduct("Olivenoel Rosmarin", "olivenoel-rosmarin", "Extra Natives Olivenoel mit Rosmarin-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-ROSM", 350, "250 ml"),
+        makeProduct("Olivenoel Thymian", "olivenoel-thymian", "Extra Natives Olivenoel mit Thymian-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-THYM", 350, "250 ml"),
+        makeProduct("Olivenoel Trueffel", "olivenoel-trueffel", "Extra Natives Olivenoel mit Trueffel-Aroma. 250ml Flasche.", catAroma.id, 8.90, "OEL-TRUEF", 350, "250 ml"),
+        makeProduct("Olivenoel Zitrone", "olivenoel-zitrone", "Extra Natives Olivenoel mit Zitrone-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-ZITR", 350, "250 ml"),
+
+        // ===== Balsamessig (je 250ml) =====
+        makeProduct("Balsamessig Apfel", "balsamessig-apfel", "Feiner Balsamessig mit Apfel-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-APFEL", 350, "250 ml"),
+        makeProduct("Balsamessig Blaubeere", "balsamessig-blaubeere", "Feiner Balsamessig mit Blaubeere-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-BLAUB", 350, "250 ml"),
+        makeProduct("Balsamessig Cranberry", "balsamessig-cranberry", "Feiner Balsamessig mit Cranberry-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-CRANB", 350, "250 ml"),
+        makeProduct("Balsamessig Feige", "balsamessig-feige", "Feiner Balsamessig mit Feige-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-FEIGE", 350, "250 ml"),
+        makeProduct("Balsamessig Granatapfel", "balsamessig-granatapfel", "Feiner Balsamessig mit Granatapfel-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-GRANAT", 350, "250 ml"),
+        makeProduct("Balsamessig Himbeere", "balsamessig-himbeere", "Feiner Balsamessig mit Himbeere-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-HIMB", 350, "250 ml"),
+        makeProduct("Balsamessig Honig", "balsamessig-honig", "Feiner Balsamessig mit Honig-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-HONIG", 350, "250 ml"),
+        makeProduct("Balsamessig Kirsche", "balsamessig-kirsche", "Feiner Balsamessig mit Kirsche-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-KIRSCH", 350, "250 ml"),
+        makeProduct("Balsamessig Klassisch", "balsamessig-klassisch", "Klassischer Balsamessig. 250ml Flasche.", catBalsam.id, 8.00, "BAL-KLASS", 350, "250 ml"),
+        makeProduct("Balsamessig Mango", "balsamessig-mango", "Feiner Balsamessig mit Mango-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-MANGO", 350, "250 ml"),
+        makeProduct("Balsamessig Pflaume", "balsamessig-pflaume", "Feiner Balsamessig mit Pflaume-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-PFLAU", 350, "250 ml"),
+        makeProduct("Balsamessig Trueffel", "balsamessig-trueffel", "Feiner Balsamessig mit Trueffel-Geschmack. 250ml Flasche.", catBalsam.id, 8.80, "BAL-TRUEF", 350, "250 ml"),
+        makeProduct("Balsamessig Weiss", "balsamessig-weiss", "Weisser Balsamessig. 250ml Flasche.", catBalsam.id, 8.00, "BAL-WEISS", 350, "250 ml"),
       ],
     },
   });
   logger.info("Finished seeding product data.");
 
   logger.info("Seeding inventory levels.");
-
   const { data: inventoryItems } = await query.graph({
     entity: "inventory_item",
     fields: ["id"],
@@ -919,4 +452,5 @@ export default async function seedDemoData({ container }: ExecArgs) {
   });
 
   logger.info("Finished seeding inventory levels data.");
+  logger.info("=== SEEDING COMPLETE: 31 Produkte angelegt! ===");
 }
