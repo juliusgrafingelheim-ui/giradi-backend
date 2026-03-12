@@ -21,6 +21,7 @@ export default defineConfig({
           {
             resolve: "@medusajs/file-s3",
             id: "s3",
+            is_default: true,
             options: {
               file_url: `${process.env.SUPABASE_URL}/storage/v1/object/public/product-images`,
               access_key_id: process.env.SUPABASE_S3_ACCESS_KEY,
