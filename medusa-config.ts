@@ -1,4 +1,6 @@
-import { defineConfig } from "@medusajs/framework/utils"
+import { defineConfig, loadEnv } from "@medusajs/framework/utils"
+
+loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
 export default defineConfig({
   projectConfig: {
@@ -11,4 +13,28 @@ export default defineConfig({
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
     },
   },
+  modules: [
+    {
+      resolve: "@medusajs/file",
+      options: {
+        providers: [
+          {
+            resolve: "@medusajs/file-s3",
+            id: "s3",
+            options: {
+              file_url: `${process.env.SUPABASE_URL}/storage/v1/object/public/product-images`,
+              access_key_id: process.env.SUPABASE_S3_ACCESS_KEY,
+              secret_access_key: process.env.SUPABASE_S3_SECRET_KEY,
+              region: "eu-central-1",
+              bucket: "product-images",
+              endpoint: `${process.env.SUPABASE_URL}/storage/v1/s3`,
+              additional_client_config: {
+                forcePathStyle: true,
+              },
+            },
+          },
+        ],
+      },
+    },
+  ],
 })
