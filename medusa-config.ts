@@ -23,7 +23,7 @@ export default defineConfig({
             id: "s3",
             is_default: true,
             options: {
-              file_url: `${process.env.SUPABASE_URL}/storage/v1/object/public/product-images`,
+              file_url: `https://afawjsfbtsisryafwyyq.storage.supabase.co/storage/v1/object/public/product-images`,
               access_key_id: process.env.SUPABASE_S3_ACCESS_KEY,
               secret_access_key: process.env.SUPABASE_S3_SECRET_KEY,
               region: "eu-north-1",
