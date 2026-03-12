@@ -352,7 +352,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
         title: sizeLabel,
         sku,
         options: { "Groesse": sizeLabel },
-        prices: [{ amount: priceEur, currency_code: "eur" }],
+        prices: [{ amount: Math.round(priceEur * 100), currency_code: "eur" }],
       },
     ],
     sales_channels: [{ id: defaultSalesChannel[0].id }],
