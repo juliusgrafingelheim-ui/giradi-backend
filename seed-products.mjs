@@ -756,7 +756,7 @@ async function seedProducts() {
         const variantId = match.variants?.[0]?.id;
         if (variantId) {
           await adminPost(`/admin/products/${match.id}/variants/${variantId}`, {
-            prices: [{ amount: Math.round(product.price * 100), currency_code: "eur" }],
+            prices: [{ amount: product.price, currency_code: "eur" }],
           });
         }
 
@@ -774,7 +774,7 @@ async function seedProducts() {
           variants: [
             {
               title: product.metadata.size || "Default",
-              prices: [{ amount: Math.round(product.price * 100), currency_code: "eur" }],
+              prices: [{ amount: product.price, currency_code: "eur" }],
               options: { Default: "Default" },
               manage_inventory: false,
             },

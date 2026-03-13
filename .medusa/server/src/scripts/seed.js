@@ -28,14 +28,13 @@ async function seedDemoData({ container }) {
     const fulfillmentModuleService = container.resolve(utils_1.Modules.FULFILLMENT);
     const salesChannelModuleService = container.resolve(utils_1.Modules.SALES_CHANNEL);
     const storeModuleService = container.resolve(utils_1.Modules.STORE);
-    const countries = ["gb", "de", "dk", "se", "fr", "es", "it"];
+    const countries = ["de", "at", "ch"];
     logger.info("Seeding store data...");
     const [store] = await storeModuleService.listStores();
     let defaultSalesChannel = await salesChannelModuleService.listSalesChannels({
         name: "Default Sales Channel",
     });
     if (!defaultSalesChannel.length) {
-        // create the default sales channel
         const { result: salesChannelResult } = await (0, core_flows_1.createSalesChannelsWorkflow)(container).run({
             input: {
                 salesChannelsData: [
@@ -55,9 +54,6 @@ async function seedDemoData({ container }) {
                     currency_code: "eur",
                     is_default: true,
                 },
-                {
-                    currency_code: "usd",
-                },
             ],
         },
     });
@@ -74,7 +70,7 @@ async function seedDemoData({ container }) {
         input: {
             regions: [
                 {
-                    name: "Europe",
+                    name: "DACH",
                     currency_code: "eur",
                     countries,
                     payment_providers: ["pp_system_default"],
@@ -97,11 +93,13 @@ async function seedDemoData({ container }) {
         input: {
             locations: [
                 {
-                    name: "European Warehouse",
+                    name: "Die Werkstatt",
                     address: {
-                        city: "Copenhagen",
-                        country_code: "DK",
-                        address_1: "",
+                        city: "Innsbruck",
+                        country_code: "AT",
+                        address_1: "Baeckerbuehel\u0067asse 14",
+                        postal_code: "6020",
+                        province: "Tirol",
                     },
                 },
             ],
@@ -143,40 +141,15 @@ async function seedDemoData({ container }) {
         shippingProfile = shippingProfileResult[0];
     }
     const fulfillmentSet = await fulfillmentModuleService.createFulfillmentSets({
-        name: "European Warehouse delivery",
+        name: "DACH Versand",
         type: "shipping",
         service_zones: [
             {
-                name: "Europe",
+                name: "DACH",
                 geo_zones: [
-                    {
-                        country_code: "gb",
-                        type: "country",
-                    },
-                    {
-                        country_code: "de",
-                        type: "country",
-                    },
-                    {
-                        country_code: "dk",
-                        type: "country",
-                    },
-                    {
-                        country_code: "se",
-                        type: "country",
-                    },
-                    {
-                        country_code: "fr",
-                        type: "country",
-                    },
-                    {
-                        country_code: "es",
-                        type: "country",
-                    },
-                    {
-                        country_code: "it",
-                        type: "country",
-                    },
+                    { country_code: "de", type: "country" },
+                    { country_code: "at", type: "country" },
+                    { country_code: "ch", type: "country" },
                 ],
             },
         ],
@@ -192,79 +165,43 @@ async function seedDemoData({ container }) {
     await (0, core_flows_1.createShippingOptionsWorkflow)(container).run({
         input: [
             {
-                name: "Standard Shipping",
+                name: "Standardversand",
                 price_type: "flat",
                 provider_id: "manual_manual",
                 service_zone_id: fulfillmentSet.service_zones[0].id,
                 shipping_profile_id: shippingProfile.id,
                 type: {
                     label: "Standard",
-                    description: "Ship in 2-3 days.",
+                    description: "Lieferung in 2-5 Werktagen.",
                     code: "standard",
                 },
                 prices: [
-                    {
-                        currency_code: "usd",
-                        amount: 10,
-                    },
-                    {
-                        currency_code: "eur",
-                        amount: 10,
-                    },
-                    {
-                        region_id: region.id,
-                        amount: 10,
-                    },
+                    { currency_code: "eur", amount: 5.90 },
+                    { region_id: region.id, amount: 5.90 },
                 ],
                 rules: [
-                    {
-                        attribute: "enabled_in_store",
-                        value: "true",
-                        operator: "eq",
-                    },
-                    {
-                        attribute: "is_return",
-                        value: "false",
-                        operator: "eq",
-                    },
+                    { attribute: "enabled_in_store", value: "true", operator: "eq" },
+                    { attribute: "is_return", value: "false", operator: "eq" },
                 ],
             },
             {
-                name: "Express Shipping",
+                name: "Abholung in Innsbruck (Die Werkstatt)",
                 price_type: "flat",
                 provider_id: "manual_manual",
                 service_zone_id: fulfillmentSet.service_zones[0].id,
                 shipping_profile_id: shippingProfile.id,
                 type: {
-                    label: "Express",
-                    description: "Ship in 24 hours.",
-                    code: "express",
+                    label: "Abholung",
+                    description: "Selbstabholung bei Die Werkstatt, Baeckerbuehel\u0067asse 14, 6020 Innsbruck - kostenlos.",
+                    code: "pickup",
                 },
                 prices: [
-                    {
-                        currency_code: "usd",
-                        amount: 10,
-                    },
-                    {
-                        currency_code: "eur",
-                        amount: 10,
-                    },
-                    {
-                        region_id: region.id,
-                        amount: 10,
-                    },
+                    { currency_code: "eur", amount: 0 },
+                    { region_id: region.id, amount: 0 },
                 ],
                 rules: [
-                    {
-                        attribute: "enabled_in_store",
-                        value: "true",
-                        operator: "eq",
-                    },
-                    {
-                        attribute: "is_return",
-                        value: "false",
-                        operator: "eq",
-                    },
+                    { attribute: "enabled_in_store", value: "true", operator: "eq" },
+                    { attribute: "is_return", value: "false", operator: "eq" },
                 ],
             },
         ],
@@ -292,7 +229,7 @@ async function seedDemoData({ container }) {
             input: {
                 api_keys: [
                     {
-                        title: "Webshop",
+                        title: "Giradi Webshop",
                         type: "publishable",
                         created_by: "",
                     },
@@ -308,518 +245,79 @@ async function seedDemoData({ container }) {
         },
     });
     logger.info("Finished seeding publishable API key data.");
-    logger.info("Seeding product data...");
+    logger.info("Seeding product categories...");
     const { result: categoryResult } = await (0, core_flows_1.createProductCategoriesWorkflow)(container).run({
         input: {
             product_categories: [
-                {
-                    name: "Shirts",
-                    is_active: true,
-                },
-                {
-                    name: "Sweatshirts",
-                    is_active: true,
-                },
-                {
-                    name: "Pants",
-                    is_active: true,
-                },
-                {
-                    name: "Merch",
-                    is_active: true,
-                },
+                { name: "BIO Olivenoel", is_active: true },
+                { name: "Olivenoel Extra Nativ", is_active: true },
+                { name: "Olivenoel mit Aroma", is_active: true },
+                { name: "Balsamessig", is_active: true },
             ],
         },
+    });
+    const catBio = categoryResult.find((c) => c.name === "BIO Olivenoel");
+    const catExtraNativ = categoryResult.find((c) => c.name === "Olivenoel Extra Nativ");
+    const catAroma = categoryResult.find((c) => c.name === "Olivenoel mit Aroma");
+    const catBalsam = categoryResult.find((c) => c.name === "Balsamessig");
+    logger.info("Seeding product data...");
+    const makeProduct = (title, handle, description, categoryId, priceEur, sku, weight = 500, sizeLabel = "250ml") => ({
+        title,
+        handle,
+        description,
+        category_ids: [categoryId],
+        weight,
+        status: utils_1.ProductStatus.PUBLISHED,
+        shipping_profile_id: shippingProfile.id,
+        options: [{ title: "Groesse", values: [sizeLabel] }],
+        variants: [
+            {
+                title: sizeLabel,
+                sku,
+                options: { "Groesse": sizeLabel },
+                prices: [{ amount: Math.round(priceEur * 100), currency_code: "eur" }],
+            },
+        ],
+        sales_channels: [{ id: defaultSalesChannel[0].id }],
     });
     await (0, core_flows_1.createProductsWorkflow)(container).run({
         input: {
             products: [
-                {
-                    title: "Medusa T-Shirt",
-                    category_ids: [
-                        categoryResult.find((cat) => cat.name === "Shirts").id,
-                    ],
-                    description: "Reimagine the feeling of a classic T-shirt. With our cotton T-shirts, everyday essentials no longer have to be ordinary.",
-                    handle: "t-shirt",
-                    weight: 400,
-                    status: utils_1.ProductStatus.PUBLISHED,
-                    shipping_profile_id: shippingProfile.id,
-                    images: [
-                        {
-                            url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/tee-black-front.png",
-                        },
-                        {
-                            url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/tee-black-back.png",
-                        },
-                        {
-                            url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/tee-white-front.png",
-                        },
-                        {
-                            url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/tee-white-back.png",
-                        },
-                    ],
-                    options: [
-                        {
-                            title: "Size",
-                            values: ["S", "M", "L", "XL"],
-                        },
-                        {
-                            title: "Color",
-                            values: ["Black", "White"],
-                        },
-                    ],
-                    variants: [
-                        {
-                            title: "S / Black",
-                            sku: "SHIRT-S-BLACK",
-                            options: {
-                                Size: "S",
-                                Color: "Black",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                        {
-                            title: "S / White",
-                            sku: "SHIRT-S-WHITE",
-                            options: {
-                                Size: "S",
-                                Color: "White",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                        {
-                            title: "M / Black",
-                            sku: "SHIRT-M-BLACK",
-                            options: {
-                                Size: "M",
-                                Color: "Black",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                        {
-                            title: "M / White",
-                            sku: "SHIRT-M-WHITE",
-                            options: {
-                                Size: "M",
-                                Color: "White",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                        {
-                            title: "L / Black",
-                            sku: "SHIRT-L-BLACK",
-                            options: {
-                                Size: "L",
-                                Color: "Black",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                        {
-                            title: "L / White",
-                            sku: "SHIRT-L-WHITE",
-                            options: {
-                                Size: "L",
-                                Color: "White",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                        {
-                            title: "XL / Black",
-                            sku: "SHIRT-XL-BLACK",
-                            options: {
-                                Size: "XL",
-                                Color: "Black",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                        {
-                            title: "XL / White",
-                            sku: "SHIRT-XL-WHITE",
-                            options: {
-                                Size: "XL",
-                                Color: "White",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                    ],
-                    sales_channels: [
-                        {
-                            id: defaultSalesChannel[0].id,
-                        },
-                    ],
-                },
-                {
-                    title: "Medusa Sweatshirt",
-                    category_ids: [
-                        categoryResult.find((cat) => cat.name === "Sweatshirts").id,
-                    ],
-                    description: "Reimagine the feeling of a classic sweatshirt. With our cotton sweatshirt, everyday essentials no longer have to be ordinary.",
-                    handle: "sweatshirt",
-                    weight: 400,
-                    status: utils_1.ProductStatus.PUBLISHED,
-                    shipping_profile_id: shippingProfile.id,
-                    images: [
-                        {
-                            url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatshirt-vintage-front.png",
-                        },
-                        {
-                            url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatshirt-vintage-back.png",
-                        },
-                    ],
-                    options: [
-                        {
-                            title: "Size",
-                            values: ["S", "M", "L", "XL"],
-                        },
-                    ],
-                    variants: [
-                        {
-                            title: "S",
-                            sku: "SWEATSHIRT-S",
-                            options: {
-                                Size: "S",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                        {
-                            title: "M",
-                            sku: "SWEATSHIRT-M",
-                            options: {
-                                Size: "M",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                        {
-                            title: "L",
-                            sku: "SWEATSHIRT-L",
-                            options: {
-                                Size: "L",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                        {
-                            title: "XL",
-                            sku: "SWEATSHIRT-XL",
-                            options: {
-                                Size: "XL",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                    ],
-                    sales_channels: [
-                        {
-                            id: defaultSalesChannel[0].id,
-                        },
-                    ],
-                },
-                {
-                    title: "Medusa Sweatpants",
-                    category_ids: [
-                        categoryResult.find((cat) => cat.name === "Pants").id,
-                    ],
-                    description: "Reimagine the feeling of classic sweatpants. With our cotton sweatpants, everyday essentials no longer have to be ordinary.",
-                    handle: "sweatpants",
-                    weight: 400,
-                    status: utils_1.ProductStatus.PUBLISHED,
-                    shipping_profile_id: shippingProfile.id,
-                    images: [
-                        {
-                            url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatpants-gray-front.png",
-                        },
-                        {
-                            url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/sweatpants-gray-back.png",
-                        },
-                    ],
-                    options: [
-                        {
-                            title: "Size",
-                            values: ["S", "M", "L", "XL"],
-                        },
-                    ],
-                    variants: [
-                        {
-                            title: "S",
-                            sku: "SWEATPANTS-S",
-                            options: {
-                                Size: "S",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                        {
-                            title: "M",
-                            sku: "SWEATPANTS-M",
-                            options: {
-                                Size: "M",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                        {
-                            title: "L",
-                            sku: "SWEATPANTS-L",
-                            options: {
-                                Size: "L",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                        {
-                            title: "XL",
-                            sku: "SWEATPANTS-XL",
-                            options: {
-                                Size: "XL",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                    ],
-                    sales_channels: [
-                        {
-                            id: defaultSalesChannel[0].id,
-                        },
-                    ],
-                },
-                {
-                    title: "Medusa Shorts",
-                    category_ids: [
-                        categoryResult.find((cat) => cat.name === "Merch").id,
-                    ],
-                    description: "Reimagine the feeling of classic shorts. With our cotton shorts, everyday essentials no longer have to be ordinary.",
-                    handle: "shorts",
-                    weight: 400,
-                    status: utils_1.ProductStatus.PUBLISHED,
-                    shipping_profile_id: shippingProfile.id,
-                    images: [
-                        {
-                            url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/shorts-vintage-front.png",
-                        },
-                        {
-                            url: "https://medusa-public-images.s3.eu-west-1.amazonaws.com/shorts-vintage-back.png",
-                        },
-                    ],
-                    options: [
-                        {
-                            title: "Size",
-                            values: ["S", "M", "L", "XL"],
-                        },
-                    ],
-                    variants: [
-                        {
-                            title: "S",
-                            sku: "SHORTS-S",
-                            options: {
-                                Size: "S",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                        {
-                            title: "M",
-                            sku: "SHORTS-M",
-                            options: {
-                                Size: "M",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                        {
-                            title: "L",
-                            sku: "SHORTS-L",
-                            options: {
-                                Size: "L",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                        {
-                            title: "XL",
-                            sku: "SHORTS-XL",
-                            options: {
-                                Size: "XL",
-                            },
-                            prices: [
-                                {
-                                    amount: 10,
-                                    currency_code: "eur",
-                                },
-                                {
-                                    amount: 15,
-                                    currency_code: "usd",
-                                },
-                            ],
-                        },
-                    ],
-                    sales_channels: [
-                        {
-                            id: defaultSalesChannel[0].id,
-                        },
-                    ],
-                },
+                // ===== BIO Olivenoel =====
+                makeProduct("BIO-Olivenoel Extra Nativ Frisch Gepresst 1L", "bio-olivenoel-1l", "Naturtrueb / 1 Liter. Frisch gepresst Anfang November 2025. Begrenzte Stueckanzahl. Zertifiziertes BIO-Olivenoel aus 100% Koroneiki-Oliven.", catBio.id, 22.50, "BIO-OEL-1L", 1100, "1 Liter"),
+                makeProduct("BIO-Olivenoel Extra Nativ Frisch Gepresst 500ml", "bio-olivenoel-500ml", "Naturtrueb / 500 ml. Frisch gepresst Anfang November 2025. Begrenzte Stueckanzahl. Zertifiziertes BIO-Olivenoel aus 100% Koroneiki-Oliven.", catBio.id, 14.50, "BIO-OEL-500ML", 600, "500 ml"),
+                // ===== Olivenoel Extra Nativ =====
+                makeProduct("Olivenoel Extra Nativ 5L Kanister", "olivenoel-extra-nativ-5l", "Erste Gueteklasse - direkt aus Oliven ausschliesslich mit mechanischen Verfahren gewonnen. 100% Koroneiki-Oliven. Intensives Fruchtaroma, tiefgruene Farbe, kraeftiger Geschmack.", catExtraNativ.id, 69.90, "OEL-EN-5L", 5200, "5 Liter"),
+                makeProduct("Olivenoel Extra Nativ 1L Flasche", "olivenoel-extra-nativ-1l", "Erste Gueteklasse - direkt aus Oliven ausschliesslich mit mechanischen Verfahren gewonnen. 100% Koroneiki-Oliven aus Griechenland.", catExtraNativ.id, 17.90, "OEL-EN-1L", 1100, "1 Liter"),
+                makeProduct("Olivenoel Extra Nativ 0,75L Flasche", "olivenoel-extra-nativ-075l", "Erste Gueteklasse - direkt aus Oliven ausschliesslich mit mechanischen Verfahren gewonnen. 100% Koroneiki-Oliven aus Griechenland.", catExtraNativ.id, 14.90, "OEL-EN-075L", 850, "0,75 Liter"),
+                // ===== Olivenoel mit Aroma (je 250ml) =====
+                makeProduct("Olivenoel Basilikum", "olivenoel-basilikum", "Extra Natives Olivenoel mit Basilikum-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-BASIL", 350, "250 ml"),
+                makeProduct("Olivenoel Blutorange", "olivenoel-blutorange", "Extra Natives Olivenoel mit Blutorange-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-BLUTO", 350, "250 ml"),
+                makeProduct("Olivenoel Chili", "olivenoel-chili", "Extra Natives Olivenoel mit Chili-Aroma. 250ml Flasche.", catAroma.id, 8.70, "OEL-CHILI", 350, "250 ml"),
+                makeProduct("Olivenoel Knoblauch", "olivenoel-knoblauch", "Extra Natives Olivenoel mit Knoblauch-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-KNOBL", 350, "250 ml"),
+                makeProduct("Olivenoel Kraeuter der Toskana", "olivenoel-kraeuter-toskana", "Extra Natives Olivenoel mit Kraeutern der Toskana. 250ml Flasche.", catAroma.id, 8.70, "OEL-TOSK", 350, "250 ml"),
+                makeProduct("Olivenoel Limette", "olivenoel-limette", "Extra Natives Olivenoel mit Limette-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-LIMET", 350, "250 ml"),
+                makeProduct("Olivenoel Orange", "olivenoel-orange", "Extra Natives Olivenoel mit Orange-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-ORANG", 350, "250 ml"),
+                makeProduct("Olivenoel Oregano", "olivenoel-oregano", "Extra Natives Olivenoel mit Oregano-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-OREG", 350, "250 ml"),
+                makeProduct("Olivenoel Pesto", "olivenoel-pesto", "Extra Natives Olivenoel mit Pesto-Aroma. 250ml Flasche.", catAroma.id, 8.70, "OEL-PESTO", 350, "250 ml"),
+                makeProduct("Olivenoel Rosmarin", "olivenoel-rosmarin", "Extra Natives Olivenoel mit Rosmarin-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-ROSM", 350, "250 ml"),
+                makeProduct("Olivenoel Thymian", "olivenoel-thymian", "Extra Natives Olivenoel mit Thymian-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-THYM", 350, "250 ml"),
+                makeProduct("Olivenoel Trueffel", "olivenoel-trueffel", "Extra Natives Olivenoel mit Trueffel-Aroma. 250ml Flasche.", catAroma.id, 8.90, "OEL-TRUEF", 350, "250 ml"),
+                makeProduct("Olivenoel Zitrone", "olivenoel-zitrone", "Extra Natives Olivenoel mit Zitrone-Aroma. 250ml Flasche.", catAroma.id, 8.50, "OEL-ZITR", 350, "250 ml"),
+                // ===== Balsamessig (je 250ml) =====
+                makeProduct("Balsamessig Apfel", "balsamessig-apfel", "Feiner Balsamessig mit Apfel-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-APFEL", 350, "250 ml"),
+                makeProduct("Balsamessig Blaubeere", "balsamessig-blaubeere", "Feiner Balsamessig mit Blaubeere-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-BLAUB", 350, "250 ml"),
+                makeProduct("Balsamessig Cranberry", "balsamessig-cranberry", "Feiner Balsamessig mit Cranberry-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-CRANB", 350, "250 ml"),
+                makeProduct("Balsamessig Feige", "balsamessig-feige", "Feiner Balsamessig mit Feige-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-FEIGE", 350, "250 ml"),
+                makeProduct("Balsamessig Granatapfel", "balsamessig-granatapfel", "Feiner Balsamessig mit Granatapfel-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-GRANAT", 350, "250 ml"),
+                makeProduct("Balsamessig Himbeere", "balsamessig-himbeere", "Feiner Balsamessig mit Himbeere-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-HIMB", 350, "250 ml"),
+                makeProduct("Balsamessig Honig", "balsamessig-honig", "Feiner Balsamessig mit Honig-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-HONIG", 350, "250 ml"),
+                makeProduct("Balsamessig Kirsche", "balsamessig-kirsche", "Feiner Balsamessig mit Kirsche-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-KIRSCH", 350, "250 ml"),
+                makeProduct("Balsamessig Klassisch", "balsamessig-klassisch", "Klassischer Balsamessig. 250ml Flasche.", catBalsam.id, 8.00, "BAL-KLASS", 350, "250 ml"),
+                makeProduct("Balsamessig Mango", "balsamessig-mango", "Feiner Balsamessig mit Mango-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-MANGO", 350, "250 ml"),
+                makeProduct("Balsamessig Pflaume", "balsamessig-pflaume", "Feiner Balsamessig mit Pflaume-Geschmack. 250ml Flasche.", catBalsam.id, 8.40, "BAL-PFLAU", 350, "250 ml"),
+                makeProduct("Balsamessig Trueffel", "balsamessig-trueffel", "Feiner Balsamessig mit Trueffel-Geschmack. 250ml Flasche.", catBalsam.id, 8.80, "BAL-TRUEF", 350, "250 ml"),
+                makeProduct("Balsamessig Weiss", "balsamessig-weiss", "Weisser Balsamessig. 250ml Flasche.", catBalsam.id, 8.00, "BAL-WEISS", 350, "250 ml"),
             ],
         },
     });
@@ -844,5 +342,6 @@ async function seedDemoData({ container }) {
         },
     });
     logger.info("Finished seeding inventory levels data.");
+    logger.info("=== SEEDING COMPLETE: 31 Produkte angelegt! ===");
 }
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoic2VlZC5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uLy4uLy4uLy4uL3NyYy9zY3JpcHRzL3NlZWQudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7QUF5REEsK0JBZzJCQztBQXg1QkQscURBSW1DO0FBQ25DLHFFQUkyQztBQUMzQyw0REFlcUM7QUFHckMsTUFBTSxxQkFBcUIsR0FBRyxJQUFBLDhCQUFjLEVBQzFDLHlCQUF5QixFQUN6QixDQUFDLEtBR0EsRUFBRSxFQUFFO0lBQ0gsTUFBTSxlQUFlLEdBQUcsSUFBQSx5QkFBUyxFQUFDLEVBQUUsS0FBSyxFQUFFLEVBQUUsQ0FBQyxJQUFJLEVBQUUsRUFBRTtRQUNwRCxPQUFPO1lBQ0wsUUFBUSxFQUFFLEVBQUUsRUFBRSxFQUFFLElBQUksQ0FBQyxLQUFLLENBQUMsUUFBUSxFQUFFO1lBQ3JDLE1BQU0sRUFBRTtnQkFDTixvQkFBb0IsRUFBRSxJQUFJLENBQUMsS0FBSyxDQUFDLG9CQUFvQixDQUFDLEdBQUcsQ0FDdkQsQ0FBQyxRQUFRLEVBQUUsRUFBRTtvQkFDWCxPQUFPO3dCQUNMLGFBQWEsRUFBRSxRQUFRLENBQUMsYUFBYTt3QkFDckMsVUFBVSxFQUFFLFFBQVEsQ0FBQyxVQUFVLElBQUksS0FBSztxQkFDekMsQ0FBQztnQkFDSixDQUFDLENBQ0Y7YUFDRjtTQUNGLENBQUM7SUFDSixDQUFDLENBQUMsQ0FBQztJQUVILE1BQU0sTUFBTSxHQUFHLElBQUEsNkJBQWdCLEVBQUMsZUFBZSxDQUFDLENBQUM7SUFFakQsT0FBTyxJQUFJLGdDQUFnQixDQUFDLE1BQU0sQ0FBQyxDQUFDO0FBQ3RDLENBQUMsQ0FDRixDQUFDO0FBRWEsS0FBSyxVQUFVLFlBQVksQ0FBQyxFQUFFLFNBQVMsRUFBWTtJQUNoRSxNQUFNLE1BQU0sR0FBRyxTQUFTLENBQUMsT0FBTyxDQUFDLGlDQUF5QixDQUFDLE1BQU0sQ0FBQyxDQUFDO0lBQ25FLE1BQU0sSUFBSSxHQUFHLFNBQVMsQ0FBQyxPQUFPLENBQUMs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
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoic2VlZC5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uLy4uLy4uLy4uL3NyYy9zY3JpcHRzL3NlZWQudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7QUF5REEsK0JBOFlDO0FBdGNELHFEQUltQztBQUNuQyxxRUFJMkM7QUFDM0MsNERBZXFDO0FBR3JDLE1BQU0scUJBQXFCLEdBQUcsSUFBQSw4QkFBYyxFQUMxQyx5QkFBeUIsRUFDekIsQ0FBQyxLQUdBLEVBQUUsRUFBRTtJQUNILE1BQU0sZUFBZSxHQUFHLElBQUEseUJBQVMsRUFBQyxFQUFFLEtBQUssRUFBRSxFQUFFLENBQUMsSUFBSSxFQUFFLEVBQUU7UUFDcEQsT0FBTztZQUNMLFFBQVEsRUFBRSxFQUFFLEVBQUUsRUFBRSxJQUFJLENBQUMsS0FBSyxDQUFDLFFBQVEsRUFBRTtZQUNyQyxNQUFNLEVBQUU7Z0JBQ04sb0JBQW9CLEVBQUUsSUFBSSxDQUFDLEtBQUssQ0FBQyxvQkFBb0IsQ0FBQyxHQUFHLENBQ3ZELENBQUMsUUFBUSxFQUFFLEVBQUU7b0JBQ1gsT0FBTzt3QkFDTCxhQUFhLEVBQUUsUUFBUSxDQUFDLGFBQWE7d0JBQ3JDLFVBQVUsRUFBRSxRQUFRLENBQUMsVUFBVSxJQUFJLEtBQUs7cUJBQ3pDLENBQUM7Z0JBQ0osQ0FBQyxDQUNGO2FBQ0Y7U0FDRixDQUFDO0lBQ0osQ0FBQyxDQUFDLENBQUM7SUFFSCxNQUFNLE1BQU0sR0FBRyxJQUFBLDZCQUFnQixFQUFDLGVBQWUsQ0FBQyxDQUFDO0lBRWpELE9BQU8sSUFBSSxnQ0FBZ0IsQ0FBQyxNQUFNLENBQUMsQ0FBQztBQUN0QyxDQUFDLENBQ0YsQ0FBQztBQUVhLEtBQUssVUFBVSxZQUFZLENBQUMsRUFBRSxTQUFTLEVBQVk7SUFDaEUsTUFBTSxNQUFNLEdBQUcsU0FBUyxDQUFDLE9BQU8sQ0FBQyxpQ0FBeUIsQ0FBQyxNQUFNLENBQUMsQ0FBQztJQUNuRSxNQUFNLElBQUksR0FBRyxTQUFTLENBQUMsT0FBTyxDQUFDLGlDQUF5QixDQUFDLElBQUksQ0FBQyxDQUFDO0lBQy9ELE1BQU0sS0FBSyxHQUFHLFNBQVMsQ0FBQyxPQUFPLENBQUMsaUNBQXlCLENBQUMsS0FBSyxDQUFDLENBQUM7SUFDakUsTUFBTSx3QkFBd0IsR0FBRyxTQUFTLENBQUMsT0FBTyxDQUFDLGVBQU8sQ0FBQyxXQUFXLENBQUMsQ0FBQztJQUN4RSxNQUFNLHlCQUF5QixHQUFHLFNBQVMsQ0FBQyxPQUFPLENBQUMsZUFBTyxDQUFDLGFBQWEsQ0FBQyxDQUFDO0lBQzNFLE1BQU0sa0JBQWtCLEdBQUcsU0FBUyxDQUFDLE9BQU8sQ0FBQyxlQUFPLENBQUMsS0FBSyxDQUFDLENBQUM7SUFFNUQsTUFBTSxTQUFTLEdBQUcsQ0FBQyxJQUFJLEVBQUUsSUFBSSxFQUFFLElBQUksQ0FBQyxDQUFDO0lBRXJDLE1BQU0sQ0FBQyxJQUFJLENBQUMsdUJBQXVCLENBQUMsQ0FBQztJQUNyQyxNQUFNLENBQUMsS0FBSyxDQUFDLEdBQUcsTUFBTSxrQkFBa0IsQ0FBQyxVQUFVLEVBQUUsQ0FBQztJQUN0RCxJQUFJLG1CQUFtQixHQUFHLE1BQU0seUJBQXlCLENBQUMsaUJBQWlCLENBQUM7UUFDMUUsSUFBSSxFQUFFLHVCQUF1QjtLQUM5QixDQUFDLENBQUM7SUFFSCxJQUFJLENBQUMsbUJBQW1CLENBQUMsTUFBTSxFQUFFLENBQUM7UUFDaEMsTUFBTSxFQUFFLE1BQU0sRUFBRSxrQkFBa0IsRUFBRSxHQUFHLE1BQU0sSUFBQSx3Q0FBMkIsRUFDdEUsU0FBUyxDQUNWLENBQUMsR0FBRyxDQUFDO1lBQ0osS0FBSyxFQUFFO2dCQUNMLGlCQUFpQixFQUFFO29CQUNqQjt3QkFDRSxJQUFJLEVBQUUsdUJBQXVCO3FCQUM5QjtpQkFDRjthQUNGO1NBQ0YsQ0FBQyxDQUFDO1FBQ0gsbUJBQW1CLEdBQUcsa0JBQWtCLENBQUM7SUFDM0MsQ0FBQztJQUVELE1BQU0scUJBQXFCLENBQUMsU0FBUyxDQUFDLENBQUMsR0FBRyxDQUFDO1FBQ3pDLEtBQUssRUFBRTtZQUNMLFFBQVEsRUFBRSxLQUFLLENBQUMsRUFBRTtZQUNsQixvQkFBb0IsRUFBRTtnQkFDcEI7b0JBQ0UsYUFBYSxFQUFFLEtBQUs7b0JBQ3BCLFVBQVUsRUFBRSxJQUFJO2lCQUNqQjthQUNGO1NBQ0Y7S0FDRixDQUFDLENBQUM7SUFFSCxNQUFNLElBQUEsaUNBQW9CLEVBQUMsU0FBUyxDQUFDLENBQUMsR0FBRyxDQUFDO1FBQ3hDLEtBQUssRUFBRTtZQUNMLFFBQVEsRUFBRSxFQUFFLEVBQUUsRUFBRSxLQUFLLENBQUMsRUFBRSxFQUFFO1lBQzFCLE1BQU0sRUFBRTtnQkFDTix3QkFBd0IsRUFBRSxtQkFBbUIsQ0FBQyxDQUFDLENBQUMsQ0FBQyxFQUFFO2FBQ3BEO1NBQ0Y7S0FDRixDQUFDLENBQUM7SUFFSCxNQUFNLENBQUMsSUFBSSxDQUFDLHdCQUF3QixDQUFDLENBQUM7SUFDdEMsTUFBTSxFQUFFLE1BQU0sRUFBRSxZQUFZLEVBQUUsR0FBRyxNQUFNLElBQUEsa0NBQXFCLEVBQUMsU0FBUyxDQUFDLENBQUMsR0FBRyxDQUFDO1FBQzFFLEtBQUssRUFBRTtZQUNMLE9BQU8sRUFBRTtnQkFDUDtvQkFDRSxJQUFJLEVBQUUsTUFBTTtvQkFDWixhQUFhLEVBQUUsS0FBSztvQkFDcEIsU0FBUztvQkFDVCxpQkFBaUIsRUFBRSxDQUFDLG1CQUFtQixDQUFDO2lCQUN6QzthQUNGO1NBQ0Y7S0FDRixDQUFDLENBQUM7SUFDSCxNQUFNLE1BQU0sR0FBRyxZQUFZLENBQUMsQ0FBQyxDQUFDLENBQUM7SUFDL0IsTUFBTSxDQUFDLElBQUksQ0FBQywyQkFBMkIsQ0FBQyxDQUFDO0lBRXpDLE1BQU0sQ0FBQyxJQUFJLENBQUMsd0JBQXdCLENBQUMsQ0FBQztJQUN0QyxNQUFNLElBQUEscUNBQXdCLEVBQUMsU0FBUyxDQUFDLENBQUMsR0FBRyxDQUFDO1FBQzVDLEtBQUssRUFBRSxTQUFTLENBQUMsR0FBRyxDQUFDLENBQUMsWUFBWSxFQUFFLEVBQUUsQ0FBQyxDQUFDO1lBQ3RDLFlBQVk7WUFDWixXQUFXLEVBQUUsV0FBVztTQUN6QixDQUFDLENBQUM7S0FDSixDQUFDLENBQUM7SUFDSCxNQUFNLENBQUMsSUFBSSxDQUFDLCtCQUErQixDQUFDLENBQUM7SUFFN0MsTUFBTSxDQUFDLElBQUksQ0FBQyxnQ0FBZ0MsQ0FBQyxDQUFDO0lBQzlDLE1BQU0sRUFBRSxNQUFNLEVBQUUsbUJBQW1CLEVBQUUsR0FBRyxNQUFNLElBQUEseUNBQTRCLEVBQ3hFLFNBQVMsQ0FDVixDQUFDLEdBQUcsQ0FBQztRQUNKLEtBQUssRUFBRTtZQUNMLFNBQVMsRUFBRTtnQkFDVDtvQkFDRSxJQUFJLEVBQUUsZUFBZTtvQkFDckIsT0FBTyxFQUFFO3dCQUNQLElBQUksRUFBRSxXQUFXO3dCQUNqQixZQUFZLEVBQUUsSUFBSTt3QkFDbEIsU0FBUyxFQUFFLDRCQUE0Qjt3QkFDdkMsV0FBVyxFQUFFLE1BQU07d0JBQ25CLFFBQVEsRUFBRSxPQUFPO3FCQUNsQjtpQkFDRjthQUNGO1NBQ0Y7S0FDRixDQUFDLENBQUM7SUFDSCxNQUFNLGFBQWEsR0FBRyxtQkFBbUIsQ0FBQyxDQUFDLENBQUMsQ0FBQztJQUU3QyxNQUFNLElBQUEsaUNBQW9CLEVBQUMsU0FBUyxDQUFDLENBQUMsR0FBRyxDQUFDO1FBQ3hDLEtBQUssRUFBRTtZQUNMLFFBQVEsRUFBRSxFQUFFLEVBQUUsRUFBRSxLQUFLLENBQUMsRUFBRSxFQUFFO1lBQzFCLE1BQU0sRUFBRTtnQkFDTixtQkFBbUIsRUFBRSxhQUFhLENBQUMsRUFBRTthQUN0QztTQUNGO0tBQ0YsQ0FBQyxDQUFDO0lBRUgsTUFBTSxJQUFJLENBQUMsTUFBTSxDQUFDO1FBQ2hCLENBQUMsZUFBTyxDQUFDLGNBQWMsQ0FBQyxFQUFFO1lBQ3hCLGlCQUFpQixFQUFFLGFBQWEsQ0FBQyxFQUFFO1NBQ3BDO1FBQ0QsQ0FBQyxlQUFPLENBQUMsV0FBVyxDQUFDLEVBQUU7WUFDckIsdUJBQXVCLEVBQUUsZUFBZTtTQUN6QztLQUNGLENBQUMsQ0FBQztJQUVILE1BQU0sQ0FBQyxJQUFJLENBQUMsNkJBQTZCLENBQUMsQ0FBQztJQUMzQyxNQUFNLGdCQUFnQixHQUFHLE1BQU0sd0JBQXdCLENBQUMsb0JBQW9CLENBQUM7UUFDM0UsSUFBSSxFQUFFLFNBQVM7S0FDaEIsQ0FBQyxDQUFDO0lBQ0gsSUFBSSxlQUFlLEdBQUcsZ0JBQWdCLENBQUMsTUFBTSxDQUFDLENBQUMsQ0FBQyxnQkFBZ0IsQ0FBQyxDQUFDLENBQUMsQ0FBQyxDQUFDLENBQUMsSUFBSSxDQUFDO0lBRTNFLElBQUksQ0FBQyxlQUFlLEVBQUUsQ0FBQztRQUNyQixNQUFNLEVBQUUsTUFBTSxFQUFFLHFCQUFxQixFQUFFLEdBQ3JDLE1BQU0sSUFBQSwyQ0FBOEIsRUFBQyxTQUFTLENBQUMsQ0FBQyxHQUFHLENBQUM7WUFDbEQsS0FBSyxFQUFFO2dCQUNMLElBQUksRUFBRTtvQkFDSjt3QkFDRSxJQUFJLEVBQUUsMEJBQTBCO3dCQUNoQyxJQUFJLEVBQUUsU0FBUztxQkFDaEI7aUJBQ0Y7YUFDRjtTQUNGLENBQUMsQ0FBQztRQUNMLGVBQWUsR0FBRyxxQkFBcUIsQ0FBQyxDQUFDLENBQUMsQ0FBQztJQUM3QyxDQUFDO0lBRUQsTUFBTSxjQUFjLEdBQUcsTUFBTSx3QkFBd0IsQ0FBQyxxQkFBcUIsQ0FBQztRQUMxRSxJQUFJLEVBQUUsY0FBYztRQUNwQixJQUFJLEVBQUUsVUFBVTtRQUNoQixhQUFhLEVBQUU7WUFDYjtnQkFDRSxJQUFJLEVBQUUsTUFBTTtnQkFDWixTQUFTLEVBQUU7b0JBQ1QsRUFBRSxZQUFZLEVBQUUsSUFBSSxFQUFFLElBQUksRUFBRSxTQUFTLEVBQUU7b0JBQ3ZDLEVBQUUsWUFBWSxFQUFFLElBQUksRUFBRSxJQUFJLEVBQUUsU0FBUyxFQUFFO29CQUN2QyxFQUFFLFlBQVksRUFBRSxJQUFJLEVBQUUsSUFBSSxFQUFFLFNBQVMsRUFBRTtpQkFDeEM7YUFDRjtTQUNGO0tBQ0YsQ0FBQyxDQUFDO0lBRUgsTUFBTSxJQUFJLENBQUMsTUFBTSxDQUFDO1FBQ2hCLENBQUMsZUFBTyxDQUFDLGNBQWMsQ0FBQyxFQUFFO1lBQ3hCLGlCQUFpQixFQUFFLGFBQWEsQ0FBQyxFQUFFO1NBQ3BDO1FBQ0QsQ0FBQyxlQUFPLENBQUMsV0FBVyxDQUFDLEVBQUU7WUFDckIsa0JBQWtCLEVBQUUsY0FBYyxDQUFDLEVBQUU7U0FDdEM7S0FDRixDQUFDLENBQUM7SUFFSCxNQUFNLElBQUEsMENBQTZCLEVBQUMsU0FBUyxDQUFDLENBQUMsR0FBRyxDQUFDO1FBQ2pELEtBQUssRUFBRTtZQUNMO2dCQUNFLElBQUksRUFBRSxpQkFBaUI7Z0JBQ3ZCLFVBQVUsRUFBRSxNQUFNO2dCQUNsQixXQUFXLEVBQUUsZUFBZTtnQkFDNUIsZUFBZSxFQUFFLGNBQWMsQ0FBQyxhQUFhLENBQUMsQ0FBQyxDQUFDLENBQUMsRUFBRTtnQkFDbkQsbUJBQW1CLEVBQUUsZUFBZSxDQUFDLEVBQUU7Z0JBQ3ZDLElBQUksRUFBRTtvQkFDSixLQUFLLEVBQUUsVUFBVTtvQkFDakIsV0FBVyxFQUFFLDZCQUE2QjtvQkFDMUMsSUFBSSxFQUFFLFVBQVU7aUJBQ2pCO2dCQUNELE1BQU0sRUFBRTtvQkFDTixFQUFFLGFBQWEsRUFBRSxLQUFLLEVBQUUsTUFBTSxFQUFFLElBQUksRUFBRTtvQkFDdEMsRUFBRSxTQUFTLEVBQUUsTUFBTSxDQUFDLEVBQUUsRUFBRSxNQUFNLEVBQUUsSUFBSSxFQUFFO2lCQUN2QztnQkFDRCxLQUFLLEVBQUU7b0JBQ0wsRUFBRSxTQUFTLEVBQUUsa0JBQWtCLEVBQUUsS0FBSyxFQUFFLE1BQU0sRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFO29CQUNoRSxFQUFFLFNBQVMsRUFBRSxXQUFXLEVBQUUsS0FBSyxFQUFFLE9BQU8sRUFBRSxRQUFRLEVBQUUsSUFBSSxFQUFFO2lCQUMzRDthQUNGO1lBQ0Q7Z0JBQ0UsSUFBSSxFQUFFLHVDQUF1QztnQkFDN0MsVUFBVSxFQUFFLE1BQU07Z0JBQ2xCLFdBQVcsRUFBRSxlQUFlO2dCQUM1QixlQUFlLEVBQUUsY0FBYyxDQUFDLGFBQWEsQ0FBQyxDQUFDLENBQUMsQ0FBQyxFQUFFO2dCQUNuRCxtQkFBbUIsRUFBRSxlQUFlLENBQUMsRUFBRTtnQkFDdkMsSUFBSSxFQUFFO29CQUNKLEtBQUssRUFBRSxVQUFVO29CQUNqQixXQUFXLEVBQUUsMkZBQTJGO29CQUN4RyxJQUFJLEVBQUUsUUFBUTtpQkFDZjtnQkFDRCxNQUFNLEVBQUU7b0JBQ04sRUFBRSxhQUFhLEVBQUUsS0FBSyxFQUFFLE1BQU0sRUFBRSxDQUFDLEVBQUU7b0JBQ25DLEVBQUUsU0FBUyxFQUFFLE1BQU0sQ0FBQyxFQUFFLEVBQUUsTUFBTSxFQUFFLENBQUMsRUFBRTtpQkFDcEM7Z0JBQ0QsS0FBSyxFQUFFO29CQUNMLEVBQUUsU0FBUyxFQUFFLGtCQUFrQixFQUFFLEtBQUssRUFBRSxNQUFNLEVBQUUsUUFBUSxFQUFFLElBQUksRUFBRTtvQkFDaEUsRUFBRSxTQUFTLEVBQUUsV0FBVyxFQUFFLEtBQUssRUFBRSxPQUFPLEVBQUUsUUFBUSxFQUFFLElBQUksRUFBRTtpQkFDM0Q7YUFDRjtTQUNGO0tBQ0YsQ0FBQyxDQUFDO0lBQ0gsTUFBTSxDQUFDLElBQUksQ0FBQyxvQ0FBb0MsQ0FBQyxDQUFDO0lBRWxELE1BQU0sSUFBQSxxREFBd0MsRUFBQyxTQUFTLENBQUMsQ0FBQyxHQUFHLENBQUM7UUFDNUQsS0FBSyxFQUFFO1lBQ0wsRUFBRSxFQUFFLGFBQWEsQ0FBQyxFQUFFO1lBQ3BCLEdBQUcsRUFBRSxDQUFDLG1CQUFtQixDQUFDLENBQUMsQ0FBQyxDQUFDLEVBQUUsQ0FBQztTQUNqQztLQUNGLENBQUMsQ0FBQztJQUNILE1BQU0sQ0FBQyxJQUFJLENBQUMsdUNBQXVDLENBQUMsQ0FBQztJQUVyRCxNQUFNLENBQUMsSUFBSSxDQUFDLHFDQUFxQyxDQUFDLENBQUM7SUFDbkQsSUFBSSxpQkFBaUIsR0FBa0IsSUFBSSxDQUFDO0lBQzVDLE1BQU0sRUFBRSxJQUFJLEVBQUUsR0FBRyxNQUFNLEtBQUssQ0FBQyxLQUFLLENBQUM7UUFDakMsTUFBTSxFQUFFLFNBQVM7UUFDakIsTUFBTSxFQUFFLENBQUMsSUFBSSxDQUFDO1FBQ2QsT0FBTyxFQUFFO1lBQ1AsSUFBSSxFQUFFLGFBQWE7U0FDcEI7S0FDRixDQUFDLENBQUM7SUFFSCxpQkFBaUIsR0FBRyxJQUFJLEVBQUUsQ0FBQyxDQUFDLENBQUMsQ0FBQztJQUU5QixJQUFJLENBQUMsaUJBQWlCLEVBQUUsQ0FBQztRQUN2QixNQUFNLEVBQ0osTUFBTSxFQUFFLENBQUMsdUJBQXVCLENBQUMsR0FDbEMsR0FBRyxNQUFNLElBQUEsa0NBQXFCLEVBQUMsU0FBUyxDQUFDLENBQUMsR0FBRyxDQUFDO1lBQzdDLEtBQUssRUFBRTtnQkFDTCxRQUFRLEVBQUU7b0JBQ1I7d0JBQ0UsS0FBSyxFQUFFLGdCQUFnQjt3QkFDdkIsSUFBSSxFQUFFLGFBQWE7d0JBQ25CLFVBQVUsRUFBRSxFQUFFO3FCQUNmO2lCQUNGO2FBQ0Y7U0FDRixDQUFDLENBQUM7UUFFSCxpQkFBaUIsR0FBRyx1QkFBaUMsQ0FBQztJQUN4RCxDQUFDO0lBRUQsTUFBTSxJQUFBLDhDQUFpQyxFQUFDLFNBQVMsQ0FBQyxDQUFDLEdBQUcsQ0FBQztRQUNyRCxLQUFLLEVBQUU7WUFDTCxFQUFFLEVBQUUsaUJBQWlCLENBQUMsRUFBRTtZQUN4QixHQUFHLEVBQUUsQ0FBQyxtQkFBbUIsQ0FBQyxDQUFDLENBQUMsQ0FBQyxFQUFFLENBQUM7U0FDakM7S0FDRixDQUFDLENBQUM7SUFDSCxNQUFNLENBQUMsSUFBSSxDQUFDLDRDQUE0QyxDQUFDLENBQUM7SUFFMUQsTUFBTSxDQUFDLElBQUksQ0FBQywrQkFBK0IsQ0FBQyxDQUFDO0lBQzdDLE1BQU0sRUFBRSxNQUFNLEVBQUUsY0FBYyxFQUFFLEdBQUcsTUFBTSxJQUFBLDRDQUErQixFQUN0RSxTQUFTLENBQ1YsQ0FBQyxHQUFHLENBQUM7UUFDSixLQUFLLEVBQUU7WUFDTCxrQkFBa0IsRUFBRTtnQkFDbEIsRUFBRSxJQUFJLEVBQUUsZUFBZSxFQUFFLFNBQVMsRUFBRSxJQUFJLEVBQUU7Z0JBQzFDLEVBQUUsSUFBSSxFQUFFLHVCQUF1QixFQUFFLFNBQVMsRUFBRSxJQUFJLEVBQUU7Z0JBQ2xELEVBQUUsSUFBSSxFQUFFLHFCQUFxQixFQUFFLFNBQVMsRUFBRSxJQUFJLEVBQUU7Z0JBQ2hELEVBQUUsSUFBSSxFQUFFLGFBQWEsRUFBRSxTQUFTLEVBQUUsSUFBSSxFQUFFO2FBQ3pDO1NBQ0Y7S0FDRixDQUFDLENBQUM7SUFFSCxNQUFNLE1BQU0sR0FBRyxjQUFjLENBQUMsSUFBSSxDQUFDLENBQUMsQ0FBQyxFQUFFLEVBQUUsQ0FBQyxDQUFDLENBQUMsSUFBSSxLQUFLLGVBQWUsQ0FBRSxDQUFDO0lBQ3ZFLE1BQU0sYUFBYSxHQUFHLGNBQWMsQ0FBQyxJQUFJLENBQUMsQ0FBQyxDQUFDLEVBQUUsRUFBRSxDQUFDLENBQUMsQ0FBQyxJQUFJLEtBQUssdUJBQXVCLENBQUUsQ0FBQztJQUN0RixNQUFNLFFBQVEsR0FBRyxjQUFjLENBQUMsSUFBSSxDQUFDLENBQUMsQ0FBQyxFQUFFLEVBQUUsQ0FBQyxDQUFDLENBQUMsSUFBSSxLQUFLLHFCQUFxQixDQUFFLENBQUM7SUFDL0UsTUFBTSxTQUFTLEdBQUcsY0FBYyxDQUFDLElBQUksQ0FBQyxDQUFDLENBQUMsRUFBRSxFQUFFLENBQUMsQ0FBQyxDQUFDLElBQUksS0FBSyxhQUFhLENBQUUsQ0FBQztJQUV4RSxNQUFNLENBQUMsSUFBSSxDQUFDLHlCQUF5QixDQUFDLENBQUM7SUFFdkMsTUFBTSxXQUFXLEdBQUcsQ0FDbEIsS0FBYSxFQUNiLE1BQWMsRUFDZCxXQUFtQixFQUNuQixVQUFrQixFQUNsQixRQUFnQixFQUNoQixHQUFXLEVBQ1gsU0FBaUIsR0FBRyxFQUNwQixZQUFvQixPQUFPLEVBQzNCLEVBQUUsQ0FBQyxDQUFDO1FBQ0osS0FBSztRQUNMLE1BQU07UUFDTixXQUFXO1FBQ1gsWUFBWSxFQUFFLENBQUMsVUFBVSxDQUFDO1FBQzFCLE1BQU07UUFDTixNQUFNLEVBQUUscUJBQWEsQ0FBQyxTQUFTO1FBQy9CLG1CQUFtQixFQUFFLGVBQWdCLENBQUMsRUFBRTtRQUN4QyxPQUFPLEVBQUUsQ0FBQyxFQUFFLEtBQUssRUFBRSxTQUFTLEVBQUUsTUFBTSxFQUFFLENBQUMsU0FBUyxDQUFDLEVBQUUsQ0FBQztRQUNwRCxRQUFRLEVBQUU7WUFDUjtnQkFDRSxLQUFLLEVBQUUsU0FBUztnQkFDaEIsR0FBRztnQkFDSCxPQUFPLEVBQUUsRUFBRSxTQUFTLEVBQUUsU0FBUyxFQUFFO2dCQUNqQyxNQUFNLEVBQUUsQ0FBQyxFQUFFLE1BQU0sRUFBRSxJQUFJLENBQUMsS0FBSyxDQUFDLFFBQVEsR0FBRyxHQUFHLENBQUMsRUFBRSxhQUFhLEVBQUUsS0FBSyxFQUFFLENBQUM7YUFDdkU7U0FDRjtRQUNELGNBQWMsRUFBRSxDQUFDLEVBQUUsRUFBRSxFQUFFLG1CQUFtQixDQUFDLENBQUMsQ0FBQyxDQUFDLEVBQUUsRUFBRSxDQUFDO0tBQ3BELENBQUMsQ0FBQztJQUVILE1BQU0sSUFBQSxtQ0FBc0IsRUFBQyxTQUFTLENBQUMsQ0FBQyxHQUFHLENBQUM7UUFDMUMsS0FBSyxFQUFFO1lBQ0wsUUFBUSxFQUFFO2dCQUNSLDRCQUE0QjtnQkFDNUIsV0FBVyxDQUNULDhDQUE4QyxFQUM5QyxrQkFBa0IsRUFDbEIsNklBQTZJLEVBQzdJLE1BQU0sQ0FBQyxFQUFFLEVBQUUsS0FBSyxFQUFFLFlBQVksRUFBRSxJQUFJLEVBQUUsU0FBUyxDQUNoRDtnQkFDRCxXQUFXLENBQ1QsaURBQWlELEVBQ2pELHFCQUFxQixFQUNyQiw0SUFBNEksRUFDNUksTUFBTSxDQUFDLEVBQUUsRUFBRSxLQUFLLEVBQUUsZUFBZSxFQUFFLEdBQUcsRUFBRSxRQUFRLENBQ2pEO2dCQUVELG9DQUFvQztnQkFDcEMsV0FBVyxDQUNULG1DQUFtQyxFQUNuQywwQkFBMEIsRUFDMUIsbUxBQW1MLEVBQ25MLGFBQWEsQ0FBQyxFQUFFLEVBQUUsS0FBSyxFQUFFLFdBQVcsRUFBRSxJQUFJLEVBQUUsU0FBUyxDQUN0RDtnQkFDRCxXQUFXLENBQ1Qsa0NBQWtDLEVBQ2xDLDBCQUEwQixFQUMxQixvSUFBb0ksRUFDcEksYUFBYSxDQUFDLEVBQUUsRUFBRSxLQUFLLEVBQUUsV0FBVyxFQUFFLElBQUksRUFBRSxTQUFTLENBQ3REO2dCQUNELFdBQVcsQ0FDVCxxQ0FBcUMsRUFDckMsNEJBQTRCLEVBQzVCLG9JQUFvSSxFQUNwSSxhQUFhLENBQUMsRUFBRSxFQUFFLEtBQUssRUFBRSxhQUFhLEVBQUUsR0FBRyxFQUFFLFlBQVksQ0FDMUQ7Z0JBRUQsNkNBQTZDO2dCQUM3QyxXQUFXLENBQUMscUJBQXFCLEVBQUUscUJBQXFCLEVBQUUsNkRBQTZELEVBQUUsUUFBUSxDQUFDLEVBQUUsRUFBRSxJQUFJLEVBQUUsV0FBVyxFQUFFLEdBQUcsRUFBRSxRQUFRLENBQUM7Z0JBQ3ZLLFdBQVcsQ0FBQyxzQkFBc0IsRUFBRSxzQkFBc0IsRUFBRSw4REFBOEQsRUFBRSxRQUFRLENBQUMsRUFBRSxFQUFFLElBQUksRUFBRSxXQUFXLEVBQUUsR0FBRyxFQUFFLFFBQVEsQ0FBQztnQkFDMUssV0FBVyxDQUFDLGlCQUFpQixFQUFFLGlCQUFpQixFQUFFLHlEQUF5RCxFQUFFLFFBQVEsQ0FBQyxFQUFFLEVBQUUsSUFBSSxFQUFFLFdBQVcsRUFBRSxHQUFHLEVBQUUsUUFBUSxDQUFDO2dCQUMzSixXQUFXLENBQUMscUJBQXFCLEVBQUUscUJBQXFCLEVBQUUsNkRBQTZELEVBQUUsUUFBUSxDQUFDLEVBQUUsRUFBRSxJQUFJLEVBQUUsV0FBVyxFQUFFLEdBQUcsRUFBRSxRQUFRLENBQUM7Z0JBQ3ZLLFdBQVcsQ0FBQyxnQ0FBZ0MsRUFBRSw0QkFBNEIsRUFBRSxtRUFBbUUsRUFBRSxRQUFRLENBQUMsRUFBRSxFQUFFLElBQUksRUFBRSxVQUFVLEVBQUUsR0FBRyxFQUFFLFFBQVEsQ0FBQztnQkFDOUwsV0FBVyxDQUFDLG1CQUFtQixFQUFFLG1CQUFtQixFQUFFLDJEQUEyRCxFQUFFLFFBQVEsQ0FBQyxFQUFFLEVBQUUsSUFBSSxFQUFFLFdBQVcsRUFBRSxHQUFHLEVBQUUsUUFBUSxDQUFDO2dCQUNqSyxXQUFXLENBQUMsa0JBQWtCLEVBQUUsa0JBQWtCLEVBQUUsMERBQTBELEVBQUUsUUFBUSxDQUFDLEVBQUUsRUFBRSxJQUFJLEVBQUUsV0FBVyxFQUFFLEdBQUcsRUFBRSxRQUFRLENBQUM7Z0JBQzlKLFdBQVcsQ0FBQyxtQkFBbUIsRUFBRSxtQkFBbUIsRUFBRSwyREFBMkQsRUFBRSxRQUFRLENBQUMsRUFBRSxFQUFFLElBQUksRUFBRSxVQUFVLEVBQUUsR0FBRyxFQUFFLFFBQVEsQ0FBQztnQkFDaEssV0FBVyxDQUFDLGlCQUFpQixFQUFFLGlCQUFpQixFQUFFLHlEQUF5RCxFQUFFLFFBQVEsQ0FBQyxFQUFFLEVBQUUsSUFBSSxFQUFFLFdBQVcsRUFBRSxHQUFHLEVBQUUsUUFBUSxDQUFDO2dCQUMzSixXQUFXLENBQUMsb0JBQW9CLEVBQUUsb0JBQW9CLEVBQUUsNERBQTRELEVBQUUsUUFBUSxDQUFDLEVBQUUsRUFBRSxJQUFJLEVBQUUsVUFBVSxFQUFFLEdBQUcsRUFBRSxRQUFRLENBQUM7Z0JBQ25LLFdBQVcsQ0FBQyxtQkFBbUIsRUFBRSxtQkFBbUIsRUFBRSwyREFBMkQsRUFBRSxRQUFRLENBQUMsRUFBRSxFQUFFLElBQUksRUFBRSxVQUFVLEVBQUUsR0FBRyxFQUFFLFFBQVEsQ0FBQztnQkFDaEssV0FBVyxDQUFDLG9CQUFvQixFQUFFLG9CQUFvQixFQUFFLDREQUE0RCxFQUFFLFFBQVEsQ0FBQyxFQUFFLEVBQUUsSUFBSSxFQUFFLFdBQVcsRUFBRSxHQUFHLEVBQUUsUUFBUSxDQUFDO2dCQUNwSyxXQUFXLENBQUMsbUJBQW1CLEVBQUUsbUJBQW1CLEVBQUUsMkRBQTJELEVBQUUsUUFBUSxDQUFDLEVBQUUsRUFBRSxJQUFJLEVBQUUsVUFBVSxFQUFFLEdBQUcsRUFBRSxRQUFRLENBQUM7Z0JBRWhLLHFDQUFxQztnQkFDckMsV0FBVyxDQUFDLG1CQUFtQixFQUFFLG1CQUFtQixFQUFFLHdEQUF3RCxFQUFFLFNBQVMsQ0FBQyxFQUFFLEVBQUUsSUFBSSxFQUFFLFdBQVcsRUFBRSxHQUFHLEVBQUUsUUFBUSxDQUFDO2dCQUMvSixXQUFXLENBQUMsdUJBQXVCLEVBQUUsdUJBQXVCLEVBQUUsNERBQTRELEVBQUUsU0FBUyxDQUFDLEVBQUUsRUFBRSxJQUFJLEVBQUUsV0FBVyxFQUFFLEdBQUcsRUFBRSxRQUFRLENBQUM7Z0JBQzNLLFdBQVcsQ0FBQyx1QkFBdUIsRUFBRSx1QkFBdUIsRUFBRSw0REFBNEQsRUFBRSxTQUFTLENBQUMsRUFBRSxFQUFFLElBQUksRUFBRSxXQUFXLEVBQUUsR0FBRyxFQUFFLFFBQVEsQ0FBQztnQkFDM0ssV0FBVyxDQUFDLG1CQUFtQixFQUFFLG1CQUFtQixFQUFFLHdEQUF3RCxFQUFFLFNBQVMsQ0FBQyxFQUFFLEVBQUUsSUFBSSxFQUFFLFdBQVcsRUFBRSxHQUFHLEVBQUUsUUFBUSxDQUFDO2dCQUMvSixXQUFXLENBQUMseUJBQXlCLEVBQUUseUJBQXlCLEVBQUUsOERBQThELEVBQUUsU0FBUyxDQUFDLEVBQUUsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLEdBQUcsRUFBRSxRQUFRLENBQUM7Z0JBQ2xMLFdBQVcsQ0FBQyxzQkFBc0IsRUFBRSxzQkFBc0IsRUFBRSwyREFBMkQsRUFBRSxTQUFTLENBQUMsRUFBRSxFQUFFLElBQUksRUFBRSxVQUFVLEVBQUUsR0FBRyxFQUFFLFFBQVEsQ0FBQztnQkFDdkssV0FBVyxDQUFDLG1CQUFtQixFQUFFLG1CQUFtQixFQUFFLHdEQUF3RCxFQUFFLFNBQVMsQ0FBQyxFQUFFLEVBQUUsSUFBSSxFQUFFLFdBQVcsRUFBRSxHQUFHLEVBQUUsUUFBUSxDQUFDO2dCQUMvSixXQUFXLENBQUMscUJBQXFCLEVBQUUscUJBQXFCLEVBQUUsMERBQTBELEVBQUUsU0FBUyxDQUFDLEVBQUUsRUFBRSxJQUFJLEVBQUUsWUFBWSxFQUFFLEdBQUcsRUFBRSxRQUFRLENBQUM7Z0JBQ3RLLFdBQVcsQ0FBQyx1QkFBdUIsRUFBRSx1QkFBdUIsRUFBRSx5Q0FBeUMsRUFBRSxTQUFTLENBQUMsRUFBRSxFQUFFLElBQUksRUFBRSxXQUFXLEVBQUUsR0FBRyxFQUFFLFFBQVEsQ0FBQztnQkFDeEosV0FBVyxDQUFDLG1CQUFtQixFQUFFLG1CQUFtQixFQUFFLHdEQUF3RCxFQUFFLFNBQVMsQ0FBQyxFQUFFLEVBQUUsSUFBSSxFQUFFLFdBQVcsRUFBRSxHQUFHLEVBQUUsUUFBUSxDQUFDO2dCQUMvSixXQUFXLENBQUMscUJBQXFCLEVBQUUscUJBQXFCLEVBQUUsMERBQTBELEVBQUUsU0FBUyxDQUFDLEVBQUUsRUFBRSxJQUFJLEVBQUUsV0FBVyxFQUFFLEdBQUcsRUFBRSxRQUFRLENBQUM7Z0JBQ3JLLFdBQVcsQ0FBQyxzQkFBc0IsRUFBRSxzQkFBc0IsRUFBRSwyREFBMkQsRUFBRSxTQUFTLENBQUMsRUFBRSxFQUFFLElBQUksRUFBRSxXQUFXLEVBQUUsR0FBRyxFQUFFLFFBQVEsQ0FBQztnQkFDeEssV0FBVyxDQUFDLG1CQUFtQixFQUFFLG1CQUFtQixFQUFFLHFDQUFxQyxFQUFFLFNBQVMsQ0FBQyxFQUFFLEVBQUUsSUFBSSxFQUFFLFdBQVcsRUFBRSxHQUFHLEVBQUUsUUFBUSxDQUFDO2FBQzdJO1NBQ0Y7S0FDRixDQUFDLENBQUM7SUFDSCxNQUFNLENBQUMsSUFBSSxDQUFDLGdDQUFnQyxDQUFDLENBQUM7SUFFOUMsTUFBTSxDQUFDLElBQUksQ0FBQywyQkFBMkIsQ0FBQyxDQUFDO0lBQ3pDLE1BQU0sRUFBRSxJQUFJLEVBQUUsY0FBYyxFQUFFLEdBQUcsTUFBTSxLQUFLLENBQUMsS0FBSyxDQUFDO1FBQ2pELE1BQU0sRUFBRSxnQkFBZ0I7UUFDeEIsTUFBTSxFQUFFLENBQUMsSUFBSSxDQUFDO0tBQ2YsQ0FBQyxDQUFDO0lBRUgsTUFBTSxlQUFlLEdBQWdDLEVBQUUsQ0FBQztJQUN4RCxLQUFLLE1BQU0sYUFBYSxJQUFJLGNBQWMsRUFBRSxDQUFDO1FBQzNDLE1BQU0sY0FBYyxHQUFHO1lBQ3JCLFdBQVcsRUFBRSxhQUFhLENBQUMsRUFBRTtZQUM3QixnQkFBZ0IsRUFBRSxPQUFPO1lBQ3pCLGlCQUFpQixFQUFFLGFBQWEsQ0FBQyxFQUFFO1NBQ3BDLENBQUM7UUFDRixlQUFlLENBQUMsSUFBSSxDQUFDLGNBQWMsQ0FBQyxDQUFDO0lBQ3ZDLENBQUM7SUFFRCxNQUFNLElBQUEsMENBQTZCLEVBQUMsU0FBUyxDQUFDLENBQUMsR0FBRyxDQUFDO1FBQ2pELEtBQUssRUFBRTtZQUNMLGdCQUFnQixFQUFFLGVBQWU7U0FDbEM7S0FDRixDQUFDLENBQUM7SUFFSCxNQUFNLENBQUMsSUFBSSxDQUFDLHlDQUF5QyxDQUFDLENBQUM7SUFDdkQsTUFBTSxDQUFDLElBQUksQ0FBQyxpREFBaUQsQ0FBQyxDQUFDO0FBQ2pFLENBQUMifQ==
