@@ -15,7 +15,7 @@ export default defineConfig({
   },
   modules: [
     {
-      resolve: "@medusajs/file",
+      resolve: "@medusajs/medusa/file",
       options: {
         providers: [
           {
