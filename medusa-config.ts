@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv } from "@medusajs/framework/utils"
+import { defineConfig, loadEnv, Modules } from "@medusajs/framework/utils"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
@@ -15,7 +15,8 @@ export default defineConfig({
   },
   modules: [
     {
-      resolve: "@medusajs/medusa/file",
+      key: Modules.FILE,
+      resolve: "@medusajs/file",
       options: {
         providers: [
           {
@@ -23,7 +24,7 @@ export default defineConfig({
             id: "s3",
             is_default: true,
             options: {
-              file_url: `https://afawjsfbtsisryafwyyq.storage.supabase.co/storage/v1/object/public/product-images`,
+              file_url: "https://afawjsfbtsisryafwyyq.storage.supabase.co/storage/v1/object/public/product-images",
               access_key_id: process.env.SUPABASE_S3_ACCESS_KEY,
               secret_access_key: process.env.SUPABASE_S3_SECRET_KEY,
               region: "eu-north-1",
