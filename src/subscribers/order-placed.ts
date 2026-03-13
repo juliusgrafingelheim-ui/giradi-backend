@@ -30,11 +30,11 @@ export default async function orderPlacedHandler({
     console.log("Order found:", !!order)
     console.log("Order email:", order?.email)
 
-    if (!order) return
+    if (!order || !order.email) { console.log("No order or email found, skipping"); return; }
 
     const result = await resend.emails.send({
       from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
-      to: order.email,
+      to: order.email as string,
       subject: `Bestellbestätigung #${order.display_id} – The Girardi Oil`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #FAF8F3; padding: 40px;">
