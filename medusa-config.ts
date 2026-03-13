@@ -15,11 +15,11 @@ export default defineConfig({
   },
   modules: [
     {
-      resolve: "@medusajs/medusa/file",
+      resolve: "@medusajs/file",
       options: {
         providers: [
           {
-            resolve: "@medusajs/medusa/file-s3",
+            resolve: "@medusajs/file-s3",
             id: "s3",
             options: {
               file_url: "https://afawjsfbtsisryafwyyq.supabase.co/storage/v1/object/public/product-images",
