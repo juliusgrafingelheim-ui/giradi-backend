@@ -35,22 +35,14 @@ export default async function orderPlacedHandler({
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+        "Authorization": "Bearer " + process.env.RESEND_API_KEY,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
         to: order.email,
-        subject: `Bestellbestätigung #${order.display_id} – The Girardi Oil`,
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #FAF8F3; padding: 40px;">
-            <h1 style="color: #275425;">Vielen Dank für deine Bestellung!</h1>
-            <p>Bestellnummer: <strong>#${order.display_id}</strong></p>
-            <p>Gesamtbetrag: <strong>€${(Number(order.total) / 100).toFixed(2)}</strong></p>
-            <h2 style="color: #275425;">Nächster Schritt</h2>
-            <p>Wir melden uns bei dir mit den Zahlungsinformationen.</p>
-          </div>
-        `,
+        subject: "Bestellbestätigung #" + order.display_id + " - The Girardi Oil",
+        html: "<div style=\"font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #FAF8F3; padding: 40px;\"><h1 style=\"color: #275425;\">Vielen Dank für deine Bestellung!</h1><p>Bestellnummer: <strong>#" + order.display_id + "</strong></p><p>Gesamtbetrag: <strong>" + (Number(order.total) / 100).toFixed(2) + " EUR</strong></p><h2 style=\"color: #275425;\">Nächster Schritt</h2><p>Wir melden uns bei dir mit den Zahlungsinformationen.</p></div>",
       }),
     })
 
