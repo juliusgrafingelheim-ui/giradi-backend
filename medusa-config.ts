@@ -2,6 +2,12 @@ import { defineConfig, loadEnv, Modules } from "@medusajs/framework/utils"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
+console.log("========== MEDUSA CONFIG DEBUG ==========")
+console.log("S3_ACCESS_KEY set:", !!process.env.SUPABASE_S3_ACCESS_KEY)
+console.log("S3_SECRET_KEY set:", !!process.env.SUPABASE_S3_SECRET_KEY)
+console.log("Modules.FILE =", Modules.FILE)
+console.log("==========================================")
+
 export default defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL || "postgres://localhost/medusa",
