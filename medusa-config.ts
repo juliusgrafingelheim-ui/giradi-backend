@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv } from "@medusajs/framework/utils"
+import { defineConfig, loadEnv, Modules } from "@medusajs/framework/utils"
 
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
@@ -15,6 +15,7 @@ export default defineConfig({
   },
   modules: [
     {
+      key: Modules.FILE,
       resolve: "@medusajs/file",
       options: {
         providers: [
